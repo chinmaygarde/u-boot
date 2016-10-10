@@ -285,19 +285,7 @@
 	"ext4load mmc $mmcdev $loadaddr $bootdir$bootfile;"		\
 	"bootm $loadaddr - $fdtaddr;"
 
-#define NAND_BOOTCOMMAND							\
-	"sf probe 1:0;"								\
-	"mtdparts default;"							\
-	"setenv nandroot ubi.mtd=firmware0 root=ubi0:rootfs rootfstype=ubifs;" \
-	"setenv bootargs $console $earlycon $nandroot $bootextra $mtdparts;"	\
-	"setenv verify n;"							\
-	"ubi part firmware0;"						\
-	"ubifsmount ubi:rootfs;"						\
-	"ubifsload $loadaddr $bootdir$bootfile;"				\
-	"ubifsload $fdtaddr $bootdir$fdtfile;"					\
-	"bootm $loadaddr - $fdtaddr;"
-
-#define DUAL_NAND_BOOT_INIT							\
+#define NAND_BOOT_INIT							\
 	"sf probe 1:0;"								\
 	"mtdparts default;"							\
 	"setenv nandroot ubi.mtd=firmware${boot_partition} root=ubi0:rootfs rootfstype=ubifs;"	\
@@ -306,55 +294,34 @@
 	"ubi part firmware${boot_partition};"					\
 	"ubifsmount ubi:rootfs || reset;"
 
-#define DUAL_NAND_UIMAGE_BOOT							\
+#define NAND_UIMAGE_BOOT							\
 	"setenv ubifs_bootm_cmd \"ubifsload $loadaddr $bootdir$bootfile && "	\
 	"ubifsload $fdtaddr $bootdir$fdtfile && "				\
 	"bootm $loadaddr - $fdtaddr\";"
 
-#define DUAL_NAND_FITIMAGE_BOOT							\
+#define NAND_FITIMAGE_BOOT							\
 	"setenv ubifs_bootm_cmd \"ubifsload $loadaddr $bootdir$fitfile && "	\
 	"bootm $loadaddr#$fitconf\";"
 
-
-#ifdef CONFIG_FIT
-/*
- If fitImage file is found boot that,  else try uImage
-*/
-#define DUAL_NAND_BOOTCOMMAND							\
-	DUAL_NAND_BOOT_INIT							\
+#define NAND_BOOTCOMMAND							\
+	NAND_BOOT_INIT							\
 	"if ubifsls $bootdir$fitfile; then "					\
-		DUAL_NAND_FITIMAGE_BOOT						\
+		NAND_FITIMAGE_BOOT						\
 	"else "									\
-		DUAL_NAND_UIMAGE_BOOT						\
+		NAND_UIMAGE_BOOT						\
 	"fi;"									\
 	"run ubifs_bootm_cmd || reset;"
-#else
-#define DUAL_NAND_BOOTCOMMAND							\
-	DUAL_NAND_BOOT_INIT							\
-	DUAL_NAND_UIMAGE_BOOT							\
-	"run ubifs_bootm_cmd || reset;"
-#endif
 
 #ifdef CONFIG_BOOTCOUNT_LIMIT
 
 #define CONFIG_SYS_BOOTCOUNT_ADDR	0x18102120
 
 #define ALT_BOOTCOMMAND							\
-	"setexpr bootcount_temp $bootcount - 1;"	\
-	"setexpr switch_partition $bootcount_temp % $bootlimit;"	\
-	"if test ${switch_partition} -eq 0; then "	\
-		"if test ${boot_partition} -eq 0; then "	\
-			"echo **Switching to partition 1;"	\
-			"setenv boot_partition 1;"	\
-		"else "	\
-			"echo **Switching to partition 0;"	\
-			"setenv boot_partition 0;"	\
-		"fi;"	\
-		"env delete bootcount_temp;"	\
-		"env delete switch_partition;"	\
-		"saveenv;"	\
-	"fi;"	\
-	DUAL_NAND_BOOTCOMMAND
+	"setexpr boot_partition ${boot_partition} + 1 && " \
+	"setexpr boot_partition ${boot_partition} % 2 && " \
+	"echo Boot failure detected, switching to firmware${boot_partition} && "	\
+	"saveenv && "	\
+	NAND_BOOTCOMMAND
 
 #define BOOTCOUNT_VARIABLES			\
 	"bootlimit=5\0"				\
@@ -377,7 +344,7 @@
 #ifndef NAND_BOOT
 #define CONFIG_BOOTCOMMAND	USB_BOOTCOMMAND
 #else
-#define CONFIG_BOOTCOMMAND	DUAL_NAND_BOOTCOMMAND
+#define CONFIG_BOOTCOMMAND	NAND_BOOTCOMMAND
 #endif
 
 #define CONFIG_EXTRA_ENV_SETTINGS 					\
@@ -400,10 +367,9 @@
 	"mmcdev=0\0"							\
 	"usbboot="USB_BOOTCOMMAND"\0"					\
 	"mmcboot="MMC_BOOTCOMMAND"\0"					\
-	"nandboot="NAND_BOOTCOMMAND"\0"					\
 	"ethboot="ETH_BOOTCOMMAND"\0"					\
 	"netboot="NET_BOOTCOMMAND"\0"					\
-	"dualnandboot="DUAL_NAND_BOOTCOMMAND"\0"			\
+	"nandboot="NAND_BOOTCOMMAND"\0"			\
 	BOOTCOUNT_VARIABLES						\
 	"factory_reset="FACTORY_RESET_CMD"\0"				\
 	"\0"
