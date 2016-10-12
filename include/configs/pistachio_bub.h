@@ -302,9 +302,14 @@
 	"setenv bootargs $console $earlycon $nandroot $bootextra $mtdparts panic=2;"\
 	"echo Attempting to boot from firmware$boot_partition;"\
 	"ubi part firmware$boot_partition || reset;"\
-	"echo Loading kernel from rootfs...;"\
-	"ubifsmount ubi:rootfs && "\
-	"ubifsload $loadaddr $bootdir$fitfile || "NAND_BOOTCOMMAND_LEGACY"reset;"
+	"if ubi check kernel; then "\
+		"echo Loading kernel from volume...;"\
+		"ubi read $loadaddr kernel || reset;"\
+	"else "\
+		"echo Loading kernel from rootfs...;"\
+		"ubifsmount ubi:rootfs && "\
+		"ubifsload $loadaddr $bootdir$fitfile || "NAND_BOOTCOMMAND_LEGACY"reset;"\
+	"fi;"
 
 #define ALT_BOOTCOMMAND	\
 	"setexpr boot_partition $boot_partition + 1;"\
