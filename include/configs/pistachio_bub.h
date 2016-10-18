@@ -36,20 +36,12 @@
  *FIT Image
 */
 #define CONFIG_FIT
-#ifdef CONFIG_FIT
 #define CONFIG_FIT_BEST_MATCH
 #define CONFIG_FIT_SIGNATURE
 #define CONFIG_FIT_VERBOSE
 #define CONFIG_RSA
 #define CONFIG_RSA_SOFTWARE_EXP
 #define CONFIG_IMAGE_FORMAT_LEGACY
-#define FITBOOT_VARIABLES	\
-	"fitfile=fitImage\0"	\
-	"fitconf="PISTACHIO_BOARD_NAME"_config@1\0"	\
-	"bootm_verify=y\0"
-#else
-#define FITBOOT_VARIABLES ""
-#endif
 
 /*
  * Memory map
@@ -217,9 +209,11 @@
 #define CONFIG_MTD_PARTITIONS
 #define CONFIG_CMD_UBI
 #define CONFIG_CMD_UBIFS
-#define MTDIDS_DEFAULT                  "nand0=spi-nand,nor0=spi-nor"
-#define MTDPARTS_DEFAULT		"mtdparts=spi-nand:256M(firmware0),256M(firmware1);"\
-					"spi-nor:1536k(uboot),8k(data-ro),8k(uEnv),496k(data-rw)"
+#define MTDIDS_DEFAULT	\
+	"nand0=spi-nand,nor0=spi-nor"
+#define MTDPARTS_DEFAULT	\
+	"mtdparts=spi-nand:256M(firmware0),256M(firmware1);"\
+	"spi-nor:1536k(uboot),8k(data-ro),8k(uEnv),496k(data-rw)"
 #endif
 
 /* I2C */
@@ -254,161 +248,111 @@
 #define CONFIG_SYS_NO_FLASH
 
 #define CONFIG_ENV_IS_IN_SPI_FLASH
-#define CONFIG_ENV_SECT_SIZE		0x01000		/* 4KB */
+#define CONFIG_ENV_SECT_SIZE	0x01000		/* 4KB */
 #define CONFIG_ENV_SIZE			0x02000		/* 8KB */
 #define CONFIG_ENV_OFFSET		0x182000	/* env starts here */
 #define CONFIG_ENV_SPI_BUS		1
 #define CONFIG_ENV_SPI_CS		0
 
-#define USB_BOOTCOMMAND							\
-	"sf probe 1:0;"                                                 \
-	"mtdparts default;"                                             \
-	"setenv bootargs $console $earlycon $usbroot $bootextra $mtdparts;" 	\
-	"setenv verify n;"						\
-	"usb start;"							\
-	"ext4load usb $usbdev $fdtaddr $bootdir$fdtfile;"		\
-	"ext4load usb $usbdev $loadaddr $bootdir$bootfile;"		\
-	"bootm $loadaddr - $fdtaddr;"
+#define INIT_BOOTCOMMAND	\
+	"sf probe 1:0;"\
+	"mtdparts default;"\
+	"setenv verify $bootm_verify;"
 
-#define ETH_BOOTCOMMAND							\
-	"setenv verify n;"						\
-	"dhcp $loadaddr $bootfile; dhcp $fdtaddr $fdtfile;"		\
-	"bootm $loadaddr - $fdtaddr;"
+#define USB_BOOTCOMMAND	\
+	"setenv bootargs $console $earlycon $usbroot $bootextra $mtdparts;"\
+	"usb start;"\
+	"ext4load usb $usbdev $loadaddr $bootdir$fitfile;"
 
-#define MMC_BOOTCOMMAND							\
-	"sf probe 1:0;"                                                 \
-	"mtdparts default;"                                             \
-	"setenv bootargs $console $earlycon $mmcroot $bootextra $mtdparts;" 	\
-	"setenv verify n;"						\
-	"mmcinfo; mmc dev $mmcdev;"					\
-	"ext4load mmc $mmcdev $fdtaddr $bootdir$fdtfile;"		\
-	"ext4load mmc $mmcdev $loadaddr $bootdir$bootfile;"		\
-	"bootm $loadaddr - $fdtaddr;"
+#define ETH_BOOTCOMMAND	\
+	"dhcp $loadaddr $fitfile;"
 
-#define NAND_BOOTCOMMAND							\
-	"sf probe 1:0;"								\
-	"mtdparts default;"							\
-	"setenv nandroot ubi.mtd=firmware0 root=ubi0:rootfs rootfstype=ubifs;" \
-	"setenv bootargs $console $earlycon $nandroot $bootextra $mtdparts;"	\
-	"setenv verify n;"							\
-	"ubi part firmware0;"						\
-	"ubifsmount ubi:rootfs;"						\
-	"ubifsload $loadaddr $bootdir$bootfile;"				\
-	"ubifsload $fdtaddr $bootdir$fdtfile;"					\
-	"bootm $loadaddr - $fdtaddr;"
-
-#define DUAL_NAND_BOOT_INIT							\
-	"sf probe 1:0;"								\
-	"mtdparts default;"							\
-	"setenv nandroot ubi.mtd=firmware${boot_partition} root=ubi0:rootfs rootfstype=ubifs;"	\
-	"setenv bootargs $console $earlycon $nandroot $bootextra $mtdparts panic=2;"	\
-	"setenv verify $bootm_verify;"						\
-	"ubi part firmware${boot_partition};"					\
-	"ubifsmount ubi:rootfs || reset;"
-
-#define DUAL_NAND_UIMAGE_BOOT							\
-	"setenv ubifs_bootm_cmd \"ubifsload $loadaddr $bootdir$bootfile && "	\
-	"ubifsload $fdtaddr $bootdir$fdtfile && "				\
-	"bootm $loadaddr - $fdtaddr\";"
-
-#define DUAL_NAND_FITIMAGE_BOOT							\
-	"setenv ubifs_bootm_cmd \"ubifsload $loadaddr $bootdir$fitfile && "	\
-	"bootm $loadaddr#$fitconf\";"
-
-
-#ifdef CONFIG_FIT
-/*
- If fitImage file is found boot that,  else try uImage
-*/
-#define DUAL_NAND_BOOTCOMMAND							\
-	DUAL_NAND_BOOT_INIT							\
-	"if ubifsls $bootdir$fitfile; then "					\
-		DUAL_NAND_FITIMAGE_BOOT						\
-	"else "									\
-		DUAL_NAND_UIMAGE_BOOT						\
-	"fi;"									\
-	"run ubifs_bootm_cmd || reset;"
-#else
-#define DUAL_NAND_BOOTCOMMAND							\
-	DUAL_NAND_BOOT_INIT							\
-	DUAL_NAND_UIMAGE_BOOT							\
-	"run ubifs_bootm_cmd || reset;"
-#endif
-
-#ifdef CONFIG_BOOTCOUNT_LIMIT
-
-#define CONFIG_SYS_BOOTCOUNT_ADDR	0x18102120
-
-#define ALT_BOOTCOMMAND							\
-	"setexpr bootcount_temp $bootcount - 1;"	\
-	"setexpr switch_partition $bootcount_temp % $bootlimit;"	\
-	"if test ${switch_partition} -eq 0; then "	\
-		"if test ${boot_partition} -eq 0; then "	\
-			"echo **Switching to partition 1;"	\
-			"setenv boot_partition 1;"	\
-		"else "	\
-			"echo **Switching to partition 0;"	\
-			"setenv boot_partition 0;"	\
-		"fi;"	\
-		"env delete bootcount_temp;"	\
-		"env delete switch_partition;"	\
-		"saveenv;"	\
-	"fi;"	\
-	DUAL_NAND_BOOTCOMMAND
-
-#define BOOTCOUNT_VARIABLES			\
-	"bootlimit=5\0"				\
-	"altbootcmd="ALT_BOOTCOMMAND"\0"
-
-#else
-
-#define BOOTCOUNT_VARIABLES ""
-
-#endif
-
-#define NET_BOOTCOMMAND										\
-	"sf probe 1:0;"                                                 \
-	"mtdparts default;"                                             \
-	"setenv bootargs $console $earlycon $netroot nfsroot=$serverip:$rootpath $bootextra $mtdparts;"	\
+#define NET_BOOTCOMMAND	\
+	"setenv bootargs $console $earlycon $netroot nfsroot=$serverip:$rootpath $bootextra $mtdparts;"\
 	ETH_BOOTCOMMAND
 
-#define BOOT_EXTRA "rootwait ro lpj=723968"
+#define MMC_BOOTCOMMAND	\
+	"setenv bootargs $console $earlycon $mmcroot $bootextra $mtdparts;"\
+	"mmcinfo; mmc dev $mmcdev;"\
+	"ext4load mmc $mmcdev $loadaddr $bootdir$fitfile;"
 
-#ifndef NAND_BOOT
-#define CONFIG_BOOTCOMMAND	USB_BOOTCOMMAND
+/* Support legacy uImage on nand for smoother transition */
+#ifdef CONFIG_IMAGE_FORMAT_LEGACY
+
+#define BOOT_ENV_LEGACY \
+	"fdtaddr=0x0D000000\0"\
+	"fdtfile="PISTACHIO_BOARD_NAME".dtb\0"\
+	"legacy_bootfile=uImage\0"
+
+#define NAND_BOOTCOMMAND_LEGACY	\
+	"echo Loading legacy kernel from rootfs... && "\
+	"ubifsload $loadaddr $bootdir$legacy_bootfile && "\
+	"ubifsload $fdtaddr $bootdir$fdtfile && "\
+	"bootm $loadaddr - $fdtaddr || "
+
 #else
-#define CONFIG_BOOTCOMMAND	DUAL_NAND_BOOTCOMMAND
+
+#define BOOT_ENV_LEGACY	""
+#define NAND_BOOTCOMMAND_LEGACY ""
+
 #endif
 
-#define CONFIG_EXTRA_ENV_SETTINGS 					\
-	"console=console=ttyS1,115200n8\0" 				\
-	"earlycon=earlycon=uart8250,mmio32,0x18101500,115200\0" 	\
-	"bootextra="BOOT_EXTRA"\0"					\
-	"rootpath=/srv/fs\0"						\
-	"usbroot=root=/dev/sda1\0"					\
-	"mmcroot=root=/dev/mmcblk0p1\0"					\
-	"boot_partition=0\0"						\
-	"netroot=root=/dev/nfs rootfstype=nfs ip=dhcp\0"		\
-	"fdtaddr=0x0D000000\0"						\
-	"fdtfile="PISTACHIO_BOARD_NAME".dtb\0"				\
-	"bootfile=uImage\0"						\
-	FITBOOT_VARIABLES						\
-	"loadaddr=0x0E000000\0"						\
-	"bootdir=/\0"							\
-	"usbdev=0\0"							\
-	"usbpart=0\0"							\
-	"mmcdev=0\0"							\
-	"usbboot="USB_BOOTCOMMAND"\0"					\
-	"mmcboot="MMC_BOOTCOMMAND"\0"					\
-	"nandboot="NAND_BOOTCOMMAND"\0"					\
-	"ethboot="ETH_BOOTCOMMAND"\0"					\
-	"netboot="NET_BOOTCOMMAND"\0"					\
-	"dualnandboot="DUAL_NAND_BOOTCOMMAND"\0"			\
-	BOOTCOUNT_VARIABLES						\
-	"factory_reset="FACTORY_RESET_CMD"\0"				\
-	"\0"
+#define NAND_BOOTCOMMAND	\
+	"setenv nandroot ubi.mtd=firmware$boot_partition;"\
+	"setenv bootargs $console $earlycon $nandroot $bootextra $mtdparts panic=2;"\
+	"echo Attempting to boot from firmware$boot_partition;"\
+	"ubi part firmware$boot_partition || reset;"\
+	"if ubi check kernel; then "\
+		"echo Loading kernel from volume...;"\
+		"ubi read $loadaddr kernel || reset;"\
+	"else "\
+		"echo Loading kernel from rootfs...;"\
+		"ubifsmount ubi:rootfs && "\
+		"ubifsload $loadaddr $bootdir$fitfile || "NAND_BOOTCOMMAND_LEGACY"reset;"\
+	"fi;"
 
-#define CONFIG_BOOTDELAY    2
+#define ALT_BOOTCOMMAND	\
+	"setexpr boot_partition $boot_partition + 1;"\
+	"setexpr boot_partition $boot_partition % 2;"\
+	"echo Boot failure detected, switching to firmware$boot_partition;"\
+	"saveenv;"
+
+#define FINAL_BOOTCOMMAND	\
+	"bootm $loadaddr#$fitconf || reset;"
+
+#define CONFIG_BOOTDELAY	2
+#define CONFIG_SYS_BOOTCOUNT_ADDR	0x18102120
+#ifdef NAND_BOOT
+#define CONFIG_BOOTCOMMAND	"run nandboot"
+#else
+#define CONFIG_BOOTCOMMAND	"run usbboot"
+#endif
+
+#define CONFIG_EXTRA_ENV_SETTINGS	\
+	"console=console=ttyS1,115200n8\0"\
+	"earlycon=earlycon=uart8250,mmio32,0x18101500,115200\0"\
+	"bootextra=rootwait ro lpj=723968\0"\
+	"loadaddr=0x0E000000\0"\
+	"boot_partition=0\0"\
+	"bootlimit=5\0"\
+	"fitfile=fitImage\0"\
+	"fitconf=config@1\0"\
+	"bootm_verify=n\0"\
+	"rootpath=/srv/fs\0"\
+	"netroot=root=/dev/nfs rootfstype=nfs ip=dhcp\0"\
+	"usbroot=root=/dev/sda1\0"\
+	"mmcroot=root=/dev/mmcblk0p1\0"\
+	"usbdev=0\0"\
+	"mmcdev=0\0"\
+	"usbboot="INIT_BOOTCOMMAND USB_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
+	"mmcboot="INIT_BOOTCOMMAND MMC_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
+	"ethboot="INIT_BOOTCOMMAND ETH_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
+	"netboot="INIT_BOOTCOMMAND NET_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
+	"nandboot="INIT_BOOTCOMMAND NAND_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
+	"altbootcmd="INIT_BOOTCOMMAND ALT_BOOTCOMMAND NAND_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
+	"factory_reset="FACTORY_RESET_CMD"\0"\
+	BOOT_ENV_LEGACY\
+	"\0"
 
 /*
 * Hash Accelerator
