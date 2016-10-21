@@ -8,8 +8,8 @@
 #define _BUS_ADDR_H
 
 #ifdef CONFIG_PHYS_TO_BUS
-unsigned long phys_to_bus(unsigned long phys);
-unsigned long bus_to_phys(unsigned long bus);
+static unsigned long phys_to_bus(unsigned long phys);
+static unsigned long bus_to_phys(unsigned long bus);
 #else
 static inline unsigned long phys_to_bus(unsigned long phys)
 {

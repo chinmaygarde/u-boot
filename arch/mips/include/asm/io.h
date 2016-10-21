@@ -560,12 +560,12 @@ static inline void unmap_physmem(void *vaddr, unsigned long flags)
 
 #ifdef CONFIG_PHYS_TO_BUS
 
-extern inline unsigned long phys_to_bus(unsigned long phys)
+static inline unsigned long phys_to_bus(unsigned long phys)
 {
 	return (unsigned long) virt_to_phys((void * )phys);
 }
 
-extern inline unsigned long bus_to_phys(unsigned long bus)
+static inline unsigned long bus_to_phys(unsigned long bus)
 {
 	return (unsigned long) phys_to_virt(bus);
 }
