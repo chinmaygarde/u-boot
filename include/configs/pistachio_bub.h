@@ -282,9 +282,12 @@
 #define BOOT_ENV_LEGACY \
 	"fdtaddr=0x0D000000\0"\
 	"fdtfile="PISTACHIO_BOARD_NAME".dtb\0"\
-	"legacy_bootfile=uImage\0"
+	"legacy_bootfile=uImage\0"\
+	"legacy_nandroot=root=ubi0:rootfs rootfstype=ubifs\0"
 
 #define NAND_BOOTCOMMAND_LEGACY	\
+	"setenv legacy_nandroot ubi.mtd=firmware$boot_partition $legacy_nandroot;"\
+	"setenv bootargs $console $earlycon $legacy_nandroot $bootextra $mtdparts panic=2;"\
 	"echo Loading legacy kernel from rootfs... && "\
 	"ubifsload $loadaddr $bootdir$legacy_bootfile && "\
 	"ubifsload $fdtaddr $bootdir$fdtfile && "\
@@ -298,7 +301,7 @@
 #endif
 
 #define NAND_BOOTCOMMAND	\
-	"setenv nandroot ubi.mtd=firmware$boot_partition;"\
+	"setenv nandroot ubi.mtd=firmware$boot_partition $nandroot;"\
 	"setenv bootargs $console $earlycon $nandroot $bootextra $mtdparts panic=2;"\
 	"echo Attempting to boot from firmware$boot_partition;"\
 	"ubi part firmware$boot_partition || reset;"\
@@ -342,6 +345,7 @@
 	"netroot=root=/dev/nfs rootfstype=nfs ip=dhcp\0"\
 	"usbroot=root=/dev/sda1\0"\
 	"mmcroot=root=/dev/mmcblk0p1\0"\
+	"nandroot=\0"\
 	"usbdev=0\0"\
 	"mmcdev=0\0"\
 	"usbboot="INIT_BOOTCOMMAND USB_BOOTCOMMAND FINAL_BOOTCOMMAND"\0"\
