@@ -96,7 +96,7 @@ static int fit_handle_file(struct image_tool_params *params)
 	if (strlen (params->imagefile) +
 		strlen (MKIMAGE_TMPFILE_SUFFIX) + 1 > sizeof (tmpfile)) {
 		fprintf (stderr, "%s: Image file name (%s) too long, "
-				"can't create tmpfile",
+				"can't create tmpfile\n",
 				params->imagefile, params->cmdname);
 		return (EXIT_FAILURE);
 	}
@@ -105,12 +105,16 @@ static int fit_handle_file(struct image_tool_params *params)
 	/* We either compile the source file, or use the existing FIT image */
 	if (params->datafile) {
 		/* dtc -I dts -O dtb -p 500 datafile > tmpfile */
-		snprintf(cmd, sizeof(cmd), "%s %s %s > %s",
+		ret = snprintf(cmd, sizeof(cmd), "%s %s %s > %s",
 			 MKIMAGE_DTC, params->dtc, params->datafile, tmpfile);
-		debug("Trying to execute \"%s\"\n", cmd);
 	} else {
-		snprintf(cmd, sizeof(cmd), "cp %s %s",
+		ret = snprintf(cmd, sizeof(cmd), "cp %s %s",
 			 params->imagefile, tmpfile);
+	}
+	debug("Trying to execute \"%s\"\n", cmd);
+	if (ret >= sizeof(cmd)) {
+		fprintf (stderr, "Command too long, can't create fit image\n");
+		return (EXIT_FAILURE);
 	}
 	if (system (cmd) == -1) {
 		fprintf (stderr, "%s: system(%s) failed: %s\n",
