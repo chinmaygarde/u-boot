@@ -315,3 +315,15 @@ void mfio_setup_usb_pwr(void)
 	__raw_writel(val, USBPHYCONTROL0_ADDR);
 }
 #endif
+
+#if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
+/*
+ * On Marduk, gpio 76 controls the heartbeat led.
+ * This function configures it as an output and sets it to 1.
+ */
+void mfio_setup_led(void)
+{
+	pistachio_configure_gpio(76, 1);
+	pistachio_set_gpio_output_state(76, 1);
+}
+#endif

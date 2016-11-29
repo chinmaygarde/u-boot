@@ -65,6 +65,10 @@ void spl_lowlevel_init(void) {
 	 */
 	setup_clk_gate_defaults();
 
+#if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
+	mfio_setup_led();
+#endif
+
 	/* Setup SPIM1 MFIOs */
 	mfio_setup_spim1();
 

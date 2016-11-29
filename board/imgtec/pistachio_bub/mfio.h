@@ -185,3 +185,7 @@ void mfio_setup_i2c(u8 interface);
 	defined(CONFIG_TARGET_PISTACHIO_BEETLE)
 void mfio_setup_usb_pwr(void);
 #endif
+
+#if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
+void mfio_setup_led(void);
+#endif
