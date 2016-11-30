@@ -23,8 +23,8 @@
 #include <tpm.h>
 #include <winbond-otp.h>
 #include "mfio.h"
+#include "otp.h"
 
-#define ETH_MAC_ADDRESS_OFFSET          0x1015 /* Ethernet MAC address offset */
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -130,12 +130,14 @@ int board_eth_init(bd_t *bs)
 
 #ifdef CONFIG_WINBOND_OTP
 	if (!is_valid_ethaddr(mac_addr)) {
-		if (!read_otp_data(ETH_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
-				   (char *)mac_addr)
-		&&  is_valid_ethaddr(mac_addr))
-			eth_setenv_enetaddr("ethaddr", (u8 *)mac_addr);
-		else
-			printf("Could not read MAC address from OTP\n");
+		if (read_otp_version(VERSION_REG0_OFFSET) >= 1) {
+			if (!read_otp_data(ETH_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
+					   (char *)mac_addr)
+			&&  is_valid_ethaddr(mac_addr))
+				eth_setenv_enetaddr("ethaddr", (u8 *)mac_addr);
+			else
+				printf("Could not read MAC address from OTP\n");
+		}
 	}
 #endif
 #ifdef CONFIG_OF_CONTROL

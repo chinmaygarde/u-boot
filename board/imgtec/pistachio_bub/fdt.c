@@ -10,10 +10,7 @@
 #if defined(CONFIG_OF_LIBFDT) && defined(CONFIG_OF_BOARD_SETUP)
 
 #include <winbond-otp.h>
-
-#define WIFI_STA_MAC_ADDRESS_OFFSET	0x1003
-#define WIFI_AP_MAC_ADDRESS_OFFSET	0x1009
-#define DCXO_OFFSET			0x2003
+#include "otp.h"
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -24,13 +21,15 @@ static void fixup_wifi_mac(void *blob, int node)
 	memset(wifi_sta_mac_addr, 0, sizeof(wifi_sta_mac_addr));
 	memset(wifi_ap_mac_addr, 0, sizeof(wifi_ap_mac_addr));
 
-	/* Read MAC addresses from OTP */
-	if (read_otp_data(WIFI_STA_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
-			  (char *)wifi_sta_mac_addr)
-	||  read_otp_data(WIFI_AP_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
-			  (char *)wifi_ap_mac_addr)) {
-		printf("WARNING: Could not read Wifi MAC addresses from OTP\n");
-		return;
+	if (read_otp_version(VERSION_REG0_OFFSET) >= 1) {
+		/* Read MAC addresses from OTP */
+		if (read_otp_data(WIFI_STA_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
+				  (char *)wifi_sta_mac_addr)
+		||  read_otp_data(WIFI_AP_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
+				  (char *)wifi_ap_mac_addr)) {
+			printf("WARNING: Could not read Wifi MAC addresses from OTP\n");
+			return;
+		}
 	}
 
 	/* Set Wifi STA and AP MAC address in device tree */
@@ -52,11 +51,14 @@ static void fixup_wifi_calibration(void *blob, int node)
 	int len;
 	char dcxo;
 	char *rf_params_prop;
+	int version_reg1 = read_otp_version(VERSION_REG1_OFFSET);
 
-	/* Read calibration data from OTP */
-	if (read_otp_data(DCXO_OFFSET, sizeof(dcxo), &dcxo)) {
-		printf("WARNING: Could not read dcxo from OTP\n");
-		return;
+	if (version_reg1 >= 1) {
+		/* Read calibration data from OTP */
+		if (read_otp_data(DCXO_OFFSET, sizeof(dcxo), &dcxo)) {
+			printf("WARNING: Could not read dcxo from OTP\n");
+			return;
+		}
 	}
 
 	/* Overwrite first byte of rf-params property with DXCO */
@@ -66,7 +68,9 @@ static void fixup_wifi_calibration(void *blob, int node)
 		return;
 	}
 
-	rf_params_prop[0] = dcxo;
+	if (version_reg1 >= 1)
+		rf_params_prop[0] = dcxo;
+
 	fdt_setprop(blob, node, "rf-params", rf_params_prop, len);
 }
 
