@@ -25,6 +25,10 @@
 #define CONFIG_WINBOND_OTP
 #define CONFIG_OF_LIBFDT
 
+#ifdef CONFIG_WINBOND_OTP
+#define CONFIG_OF_BOARD_SETUP
+#endif
+
 /*
  * CPU Configuration
  */
