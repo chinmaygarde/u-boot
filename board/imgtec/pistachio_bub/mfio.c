@@ -103,23 +103,20 @@ static struct pistachio_mfio_reg pistachio_mfio_regs[] =
 	{MFIO_89_FUNC_SEL_START, MFIO_89_FUNC_SEL_END},
 };
 
-static void pistachio_select_gpio(u32 mfio, bool gpio)
+static void pistachio_select_gpio(u32 mfio, bool output)
 {
 	u32 reg, val;
+	reg = PISTACHIO_GPIO + 0x204 + (((mfio) / 16) * 0x24);
+	val = 0x10000 | ((output) ? (1) : (0));
+	val <<= (mfio % 16);
+	__raw_writel(val, reg);
 
-	if(gpio)
-	{
-	/* make GPIO input */
-		reg = PISTACHIO_GPIO + 0x204 + (((mfio) / 16) * 0x24);
+	/* For inputs, do not generate interrupts */
+	if (!output) {
+		reg = PISTACHIO_GPIO + 0x200 + (((mfio) / 16) * 0x24);
 		val = 0x10000 << (mfio % 16);
 		__raw_writel(val, reg);
 	}
-
-	reg = PISTACHIO_GPIO + 0x200 + (((mfio) / 16) * 0x24);
-	val = 0x10000 | ((gpio) ? (1) : (0));
-	val <<= (mfio % 16);
-
-	__raw_writel(val, reg);
 }
 
 static void pistachio_select_mfio(u32 mfio, u32 func)
