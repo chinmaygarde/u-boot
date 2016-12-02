@@ -103,22 +103,29 @@ static struct pistachio_mfio_reg pistachio_mfio_regs[] =
 	{MFIO_89_FUNC_SEL_START, MFIO_89_FUNC_SEL_END},
 };
 
-static void pistachio_select_gpio(u32 mfio, bool gpio)
+static void pistachio_configure_gpio(u32 mfio, bool output)
 {
 	u32 reg, val;
+	reg = PISTACHIO_GPIO + 0x204 + (((mfio) / 16) * 0x24);
+	val = 0x10000 | ((output) ? (1) : (0));
+	val <<= (mfio % 16);
+	__raw_writel(val, reg);
 
-	if(gpio)
-	{
-	/* make GPIO input */
-		reg = PISTACHIO_GPIO + 0x204 + (((mfio) / 16) * 0x24);
+	/* For inputs, do not generate interrupts */
+	if (!output) {
+		reg = PISTACHIO_GPIO + 0x200 + (((mfio) / 16) * 0x24);
 		val = 0x10000 << (mfio % 16);
 		__raw_writel(val, reg);
 	}
+}
 
-	reg = PISTACHIO_GPIO + 0x200 + (((mfio) / 16) * 0x24);
-	val = 0x10000 | ((gpio) ? (1) : (0));
+static void pistachio_set_gpio_output_state(u32 mfio, bool state)
+{
+	u32 reg, val;
+
+	reg = PISTACHIO_GPIO + 0x208 + (((mfio) / 16) * 0x24);
+	val = 0x10000 | ((state) ? (1) : (0));
 	val <<= (mfio % 16);
-
 	__raw_writel(val, reg);
 }
 
@@ -142,7 +149,7 @@ static void pistachio_select_mfio(u32 mfio, u32 func)
 static void pistachio_deselectgpio_selectmfio(u32 mfio, u32 func)
 {
         pistachio_select_mfio(mfio, func);
-        pistachio_select_gpio(mfio, 0);
+        pistachio_configure_gpio(mfio, 0);
 }
 
 static void set_slew_rate(u32 mfio)
@@ -184,7 +191,7 @@ void mfio_setup_ethernet(void)
 	pistachio_deselectgpio_selectmfio(68, 0);
 	pistachio_deselectgpio_selectmfio(69, 0);
 	pistachio_deselectgpio_selectmfio(70, 0);
-	pistachio_select_gpio(71, 0);
+	pistachio_configure_gpio(71, 0);
 
 	set_slew_rate(63);
 	set_slew_rate(64);
@@ -219,11 +226,11 @@ void mfio_setup_mmc(void)
 	pistachio_deselectgpio_selectmfio(21, 0);
 	pistachio_deselectgpio_selectmfio(22, 0);
 
-	pistachio_select_gpio(23, 0);
-	pistachio_select_gpio(24, 0);
-	pistachio_select_gpio(25, 0);
-	pistachio_select_gpio(26, 0);
-	pistachio_select_gpio(27, 0);
+	pistachio_configure_gpio(23, 0);
+	pistachio_configure_gpio(24, 0);
+	pistachio_configure_gpio(25, 0);
+	pistachio_configure_gpio(26, 0);
+	pistachio_configure_gpio(27, 0);
 
 	set_slew_rate(15);
 	set_slew_rate(16);
@@ -254,10 +261,10 @@ void mfio_setup_mmc(void)
 void mfio_setup_spim1(void)
 {
 	/* Use CS lines as GPIO */
-	pistachio_select_gpio(0, 0);
+	pistachio_configure_gpio(0, 0);
 	/* TODO: separate this according to board (DTS */
-	pistachio_select_gpio(1, 0);
-	pistachio_select_gpio(58, 0);
+	pistachio_configure_gpio(1, 0);
+	pistachio_configure_gpio(58, 0);
 
 	/* Use all other lines as MFIO - controlled by the SPFI block */
 	pistachio_deselectgpio_selectmfio(5, 0);
@@ -306,5 +313,17 @@ void mfio_setup_usb_pwr(void)
 	val = __raw_readl(USBPHYCONTROL0_ADDR);
 	val |= 1 << USBPHYCONTROL0_USB_OTG_DRVVBUS;
 	__raw_writel(val, USBPHYCONTROL0_ADDR);
+}
+#endif
+
+#if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
+/*
+ * On Marduk, gpio 76 controls the heartbeat led.
+ * This function configures it as an output and sets it to 1.
+ */
+void mfio_setup_led(void)
+{
+	pistachio_configure_gpio(76, 1);
+	pistachio_set_gpio_output_state(76, 1);
 }
 #endif
