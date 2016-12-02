@@ -119,6 +119,16 @@ static void pistachio_select_gpio(u32 mfio, bool output)
 	}
 }
 
+static void pistachio_set_gpio_output_state(u32 mfio, bool state)
+{
+	u32 reg, val;
+
+	reg = PISTACHIO_GPIO + 0x208 + (((mfio) / 16) * 0x24);
+	val = 0x10000 | ((state) ? (1) : (0));
+	val <<= (mfio % 16);
+	__raw_writel(val, reg);
+}
+
 static void pistachio_select_mfio(u32 mfio, u32 func)
 {
 	u32 reg, val, mask, shift;
