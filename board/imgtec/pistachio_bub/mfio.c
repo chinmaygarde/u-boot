@@ -103,7 +103,7 @@ static struct pistachio_mfio_reg pistachio_mfio_regs[] =
 	{MFIO_89_FUNC_SEL_START, MFIO_89_FUNC_SEL_END},
 };
 
-static void pistachio_select_gpio(u32 mfio, bool output)
+static void pistachio_configure_gpio(u32 mfio, bool output)
 {
 	u32 reg, val;
 	reg = PISTACHIO_GPIO + 0x204 + (((mfio) / 16) * 0x24);
@@ -149,7 +149,7 @@ static void pistachio_select_mfio(u32 mfio, u32 func)
 static void pistachio_deselectgpio_selectmfio(u32 mfio, u32 func)
 {
         pistachio_select_mfio(mfio, func);
-        pistachio_select_gpio(mfio, 0);
+        pistachio_configure_gpio(mfio, 0);
 }
 
 static void set_slew_rate(u32 mfio)
@@ -191,7 +191,7 @@ void mfio_setup_ethernet(void)
 	pistachio_deselectgpio_selectmfio(68, 0);
 	pistachio_deselectgpio_selectmfio(69, 0);
 	pistachio_deselectgpio_selectmfio(70, 0);
-	pistachio_select_gpio(71, 0);
+	pistachio_configure_gpio(71, 0);
 
 	set_slew_rate(63);
 	set_slew_rate(64);
@@ -226,11 +226,11 @@ void mfio_setup_mmc(void)
 	pistachio_deselectgpio_selectmfio(21, 0);
 	pistachio_deselectgpio_selectmfio(22, 0);
 
-	pistachio_select_gpio(23, 0);
-	pistachio_select_gpio(24, 0);
-	pistachio_select_gpio(25, 0);
-	pistachio_select_gpio(26, 0);
-	pistachio_select_gpio(27, 0);
+	pistachio_configure_gpio(23, 0);
+	pistachio_configure_gpio(24, 0);
+	pistachio_configure_gpio(25, 0);
+	pistachio_configure_gpio(26, 0);
+	pistachio_configure_gpio(27, 0);
 
 	set_slew_rate(15);
 	set_slew_rate(16);
@@ -261,10 +261,10 @@ void mfio_setup_mmc(void)
 void mfio_setup_spim1(void)
 {
 	/* Use CS lines as GPIO */
-	pistachio_select_gpio(0, 0);
+	pistachio_configure_gpio(0, 0);
 	/* TODO: separate this according to board (DTS */
-	pistachio_select_gpio(1, 0);
-	pistachio_select_gpio(58, 0);
+	pistachio_configure_gpio(1, 0);
+	pistachio_configure_gpio(58, 0);
 
 	/* Use all other lines as MFIO - controlled by the SPFI block */
 	pistachio_deselectgpio_selectmfio(5, 0);
