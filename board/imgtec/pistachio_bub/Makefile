@@ -19,3 +19,7 @@ endif
 ifdef CONFIG_CMD_PISTACHIO_SCRATCHPAD
 obj-y				+= cmd_scratchpad.o
 endif
+ifdef CONFIG_WINBOND_OTP
+obj-y				+= fdt.o
+obj-y				+= otp.o
+endif

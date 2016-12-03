@@ -21,11 +21,12 @@
 #include <asm-generic/sections.h>
 #include <watchdog.h>
 #include <tpm.h>
-
+#include <winbond-otp.h>
 #include "mfio.h"
+#include "otp.h"
+
 
 DECLARE_GLOBAL_DATA_PTR;
-const char *enet_dtb_macaddr = 0;
 
 int reloc_tlb_fixup(void)
 {
@@ -109,22 +110,44 @@ static const char *get_dtb_macaddr(u32 ifno)
 	if (mac && is_valid_ethaddr((u8 *)mac))
 		return mac;
 
-        return NULL;
+	return NULL;
 }
 #endif
 
 int board_eth_init(bd_t *bs)
 {
+	u_char mac_addr[MAC_ADDR_LEN];
+
 	mfio_setup_ethernet();
 
-	/* try to get a valid macaddr from dtb */
-#ifdef CONFIG_OF_CONTROL
-	enet_dtb_macaddr = get_dtb_macaddr(0);
+	/* Order of precedence:
+	 * 1. Check for existing ethaddr environment variable
+	 * 2. Read from OTP
+	 * 3. Fallback on dtb
+	 */
+	memset(mac_addr, 0, MAC_ADDR_LEN);
+	eth_getenv_enetaddr("ethaddr", mac_addr);
 
-	if (enet_dtb_macaddr)
-		eth_setenv_enetaddr("ethaddr", (u8 *)enet_dtb_macaddr);
-	else
-		printf("No valid Mac-addr found from dtb\n");
+#ifdef CONFIG_WINBOND_OTP
+	if (!is_valid_ethaddr(mac_addr)) {
+		if (read_otp_version(VERSION_REG0_OFFSET) >= 1) {
+			if (!read_otp_data(ETH_MAC_ADDRESS_OFFSET, MAC_ADDR_LEN,
+					   (char *)mac_addr)
+			&&  is_valid_ethaddr(mac_addr))
+				eth_setenv_enetaddr("ethaddr", (u8 *)mac_addr);
+			else
+				printf("Could not read MAC address from OTP\n");
+		}
+	}
+#endif
+#ifdef CONFIG_OF_CONTROL
+	if (!is_valid_ethaddr(mac_addr)) {
+		const char *enet_dtb_macaddr = get_dtb_macaddr(0);
+		if (enet_dtb_macaddr)
+			eth_setenv_enetaddr("ethaddr", (u8 *)enet_dtb_macaddr);
+		else
+			printf("No valid Mac-addr found from dtb\n");
+	}
 #endif
 
 #ifndef CONFIG_DM_ETH
