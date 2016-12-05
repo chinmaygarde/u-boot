@@ -5,6 +5,7 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
+#include <common.h>
 #include <asm/io.h>
 #include <asm/pistachio.h>
 #include "mfio.h"
@@ -325,5 +326,18 @@ void mfio_setup_led(void)
 {
 	pistachio_configure_gpio(76, 1);
 	pistachio_set_gpio_output_state(76, 1);
+}
+#endif
+
+#if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
+void mfio_setup_tpm(void)
+{
+	/* Reset the TPM, first versions of the board
+	have the tpm reset connected to gpio 42 instead
+	of directly connected to system reset */
+	pistachio_configure_gpio(42, 1);
+	pistachio_set_gpio_output_state(42, 0);
+	udelay(100);
+	pistachio_set_gpio_output_state(42, 1);
 }
 #endif
