@@ -205,11 +205,6 @@ int board_late_init(void)
 	return 0;
 }
 
-int misc_init_r(void)
-{
-	return 0;
-}
-
 #ifndef DM_SERIAL
 struct serial_device *default_serial_console(void)
 {
