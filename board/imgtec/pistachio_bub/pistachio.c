@@ -202,9 +202,6 @@ int board_late_init(void)
 		return 1;
 	}
 #endif
-#ifdef CONFIG_PISTACHIO_WATCHDOG
-	hw_watchdog_init();
-#endif
 	return 0;
 }
 
