@@ -233,6 +233,7 @@
 #define CONFIG_TPM_TIS_I2C_SLAVE_ADDRESS	0x20
 #define CONFIG_TPM_TIS_I2C
 #define CONFIG_CMD_TPM
+#define CONFIG_CMD_TPM_TEST
 
 /* MMC - Sdhost */
 #define CONFIG_MMC
