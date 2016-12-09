@@ -197,19 +197,18 @@ int board_early_init_f(void)
 int board_late_init(void)
 {
 #ifdef CONFIG_TPM
-	if (tpm_init() || tpm_startup(TPM_ST_CLEAR)) {
-		printf("Failed to enable tpm!\n");
+	uint32_t result;
+
+	mfio_setup_tpm();
+	udelay(10000);
+	tpm_init();
+	result = tpm_startup(TPM_ST_CLEAR);
+	if (result != 0) {
+		printf("tpm startup failed with 0x%x\n", result);
 		return 1;
 	}
+	printf("TPM:   Infineon (1.2)\n");
 #endif
-#ifdef CONFIG_PISTACHIO_WATCHDOG
-	hw_watchdog_init();
-#endif
-	return 0;
-}
-
-int misc_init_r(void)
-{
 	return 0;
 }
 

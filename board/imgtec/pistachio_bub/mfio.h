@@ -189,3 +189,7 @@ void mfio_setup_usb_pwr(void);
 #if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
 void mfio_setup_led(void);
 #endif
+
+#if defined(CONFIG_TARGET_PISTACHIO_MARDUK)
+void mfio_setup_tpm(void);
+#endif
