@@ -6,12 +6,16 @@
  */
 
 #include <common.h>
+#include <dm.h>
 #include <dwmmc.h>
 #include <fdtdec.h>
 #include <miiphy.h>
 #include <malloc.h>
 #include <netdev.h>
 #include <serial.h>
+#include <watchdog.h>
+#include <winbond-otp.h>
+#include <tpm.h>
 
 #include <asm/addrspace.h>
 #include <asm/io.h>
@@ -19,9 +23,6 @@
 #include <asm/mipsregs.h>
 #include <asm/pistachio.h>
 #include <asm-generic/sections.h>
-#include <watchdog.h>
-#include <tpm.h>
-#include <winbond-otp.h>
 #include "mfio.h"
 #include "otp.h"
 
@@ -197,17 +198,30 @@ int board_early_init_f(void)
 int board_late_init(void)
 {
 #ifdef CONFIG_TPM
+	struct udevice *dev;
+	char buf[80];
+	int err;
 	uint32_t result;
 
+	/* reset the tpm */
 	mfio_setup_tpm();
 	udelay(10000);
-	tpm_init();
-	result = tpm_startup(TPM_ST_CLEAR);
-	if (result != 0) {
-		printf("tpm startup failed with 0x%x\n", result);
-		return 1;
+
+	/* If a TPM can be found then initialise and start it */
+	puts("TPM:   ");
+	err = tpm_init();
+	if (err < 0) {
+		puts("none\n");
+		return 0;
 	}
-	printf("TPM:   Infineon (1.2)\n");
+	uclass_first_device(UCLASS_TPM, &dev);
+	tpm_get_desc(dev, buf, sizeof(buf));
+	printf("%s\n", buf);
+	result = tpm_startup(TPM_ST_CLEAR);
+	if (result) {
+		printf("WARNING: failed to startup TPM (%d)\n", result);
+		return 0;
+	}
 #endif
 	return 0;
 }
