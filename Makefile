@@ -1043,6 +1043,11 @@ u-boot-pistachio-nor.img: u-boot-dtb.img u-boot-spl-pistachio.bimg FORCE
 	@dd if=/dev/zero of=$@ bs=4K count=384 conv=notrunc
 	@dd if=u-boot-spl-pistachio.bimg of=$@ bs=4K count=128 conv=notrunc
 	@dd if=u-boot-dtb.img of=$@ bs=4K count=256 seek=128 conv=notrunc
+ifeq ($(UBOOTRELEASE),$(UBOOTVERSION))
+	-mv  u-boot-pistachio-nor.img u-boot-$(subst $\",,$(CONFIG_SYS_CONFIG_NAME))-$(UBOOTVERSION).img
+else
+	-mv u-boot-pistachio-nor.img u-boot-$(subst $\",,$(CONFIG_SYS_CONFIG_NAME))-$(UBOOTRELEASE).img
+endif
 
 # x86 uses a large ROM. We fill it with 0xff, put the 16-bit stuff (including
 # reset vector) at the top, Intel ME descriptor at the bottom, and U-Boot in
